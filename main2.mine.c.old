@@ -1,0 +1,330 @@
+/********************************************************************************
+ *  main2-1.c                                                                   *
+ *  Το αρχείο αυτό προσομοιώνει τον ρόλο ενός υψηλότερου-επιπέδου αρθρώματος    *
+ *  ενός ΣΔΒΔ το οποίο καλεί συναρτήσεις του επιπέδου που ασχολείται με  τον    *
+ *  χειρισμό b+-δένδρων (ΒΔ). Η προσοχή του αρχείου επικεντρώνεται              * 
+ *  στην δημιουργία ΒΔ δένδρων και στην εισαγωγή και αναζήτηση εγγραφών         *
+ ********************************************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "defn.h"
+#include "AM.h"
+
+char empName[40];
+char empAge[40];
+char empSal[40];
+char dnameAge[40];
+
+void insertEntries(int eNentry, int eAentry, int eSentry, int dAentry,
+		char* ename, int eage, float esal, char* edname, int recid) {
+	char errStr[140];
+
+	strcpy(errStr, "Error in AM_InsertEntry");
+
+	if (AM_InsertEntry(eNentry, (void *) ename, &recid) != AME_OK) {
+		sprintf(errStr, "Error in AM_InsertEntry called on %s \n", empName);
+		AM_PrintError(errStr);
+	}
+	if (AM_InsertEntry(eAentry, (void *) &eage, ename) != AME_OK) {
+		sprintf(errStr, "Error in AM_InsertEntry called on %s \n", empAge);
+		AM_PrintError(errStr);
+	}
+	if (AM_InsertEntry(eSentry, (void *) &esal, ename) != AME_OK) {
+		sprintf(errStr, "Error in AM_InsertEntry called on %s \n", empSal);
+		AM_PrintError(errStr);
+	}
+	if (AM_InsertEntry(dAentry, (void *) edname, &eage) != AME_OK) {
+		sprintf(errStr, "Error in AM_InsertEntry called on %s \n", dnameAge);
+		AM_PrintError(errStr);
+	}
+
+}
+
+int main() {
+	int scan1;
+
+	int eNentry;
+	int eAentry;
+	int eSentry;
+	int dAentry;
+
+	int eage;
+	float esal;
+	char edname[40];
+	char ename[40];
+	char fltname[40];
+
+
+	int recordid = 1;
+
+	char errStr[200];
+
+	int* ivalue = NULL;
+	char* cvalue = NULL;
+
+	/********************************************************************************
+	 *  Αρχικοποίηση των εσωτερικών δομών του λογισμικού των ΒΔ                     *
+	 ********************************************************************************/
+	AM_Init();
+
+	strcpy(empName, "EMP-NAME");
+	strcpy(empAge, "EMP-AGE");
+	strcpy(empSal, "EMP-SAL");
+	strcpy(dnameAge, "DNAME-AGE");
+	strcpy(fltname, "EMP-FAULT");
+
+	
+	/********************************************************************************
+	 *  ¶νοιγμα των τεσσάρων ΑΚ (με σκοπό την εισαγωγή εγγραφών)                    *
+	 ********************************************************************************/
+
+	if ((eNentry = AM_OpenIndex(empName)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndex called on %s \n", empName);
+		AM_PrintError(errStr);
+	}
+
+	if ((eAentry = AM_OpenIndex(empAge)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndex called on %s \n", empAge);
+		AM_PrintError(errStr);
+	}
+
+	if ((eSentry = AM_OpenIndex(empSal)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndex called on %s \n", empSal);
+		AM_PrintError(errStr);
+	}
+
+	if ((dAentry = AM_OpenIndex(dnameAge)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndex called on %s \n", dnameAge);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Εισαγωγή των δυάδων (τιμή1, τιμή2) στα ΑΚ. Υπάρχουν 100 συνολικά εισαγωγές    *
+	 *  σε κάθε αρχείο, οι οποίες διαχωρίζονται με παύλες για δική σας ευκολία         *
+	 ********************************************************************************/
+
+	/* -----------------------------------------------------------------------------*/
+	recordid = 200;
+
+	
+
+	if (AM_CloseIndex(eNentry) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndex called on %s \n", empName);
+		AM_PrintError(errStr);
+	}
+
+	if (AM_CloseIndex(eAentry) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndex called on %s \n", empAge);
+		AM_PrintError(errStr);
+	}
+
+	if (AM_CloseIndex(eSentry) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndex called on %s \n", empSal);
+		AM_PrintError(errStr);
+	}
+
+	if (AM_CloseIndex(dAentry) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndex called on %s \n", dnameAge);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *      Επερώτηση #1                                                            *
+	 *  Έυρεση της εγγραφής "KOKKINOS ARISTOTELHS", γνωρίζοντας ότι το όνομα είναι  *
+	 *	μοναδικό                                                                    *
+	 ********************************************************************************/
+
+	strcpy(ename, "KOKKINOS ARISTOTELHS");
+	printf("\nRESULT OF QUERY #1\n\n");
+
+	if ((eNentry = AM_OpenIndex(empName)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndex called on %s \n", empName);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Άνοιγμα της αναζήτησης                                                      *
+	 ********************************************************************************/
+	if ((scan1 = AM_OpenIndexScan(eNentry, EQUAL, (void *) ename)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndexScan called on %s \n", empName);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Εύρεση της πρώτης εγγραφής με όνομα "KOKKINOS ARISTOTELHS"                  *
+	 ********************************************************************************/
+	if ((ivalue = (int*) AM_FindNextEntry(scan1)) != NULL)
+		printf("%d \n\n", *ivalue);
+	else {
+		sprintf(errStr, "Error in AM_FindNextEntry called on scan %d \n\n",
+				scan1);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Κλείσιμο της αναζήτησης και του αρχείου ΑΚ                                  *
+	 ********************************************************************************/
+	if (AM_CloseIndexScan(scan1) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndexScan called on scan %d \n",
+				scan1);
+		AM_PrintError(errStr);
+	}
+
+	if (AM_CloseIndex(eNentry) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndex called on %s \n", empName);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *      Επερώτηση #2                                                            *
+	 *  Εύρεση των ονομάτων των υπαλλήλων με μισθό μικρότερο από 398.100            *
+	 ********************************************************************************/
+
+	esal = 398.1;
+	printf("\nRESULT OF QUERY #2\n\n");
+
+	if ((eSentry = AM_OpenIndex(empSal)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndex called on %s \n", empSal);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  ¶νοιγμα της αναζήτησης                                                      *
+	 ********************************************************************************/
+	if ((scan1 = AM_OpenIndexScan(eSentry, LESS_THAN_OR_EQUAL, (void *) &esal))
+			< 0) {
+		sprintf(errStr, "Error in AM_OpenIndexScan called on %s \n", empSal);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Σάρωση των σχετικών εγγραφών και εκτύπωση των αντίστοιχων ονομάτων          *
+	 ********************************************************************************/
+	while ((cvalue = (char*) AM_FindNextEntry(scan1)) != NULL) {
+		printf("'%s'\n", cvalue);
+	}
+
+	if (AM_errno != AME_EOF) {
+		sprintf(errStr, "Error in AM_FindNextEntry called on scan %d \n", scan1);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Κλείσιμο της αναζήτησης και του αρχείου ΑΚ                                  *
+	 ********************************************************************************/
+	if (AM_CloseIndexScan(scan1) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndexScan called on scan %d \n",
+				scan1);
+		AM_PrintError(errStr);
+	}
+
+	if (AM_CloseIndex(eSentry) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndex called on %s \n", empSal);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *      Επερώτηση #3                                                            *
+	 *  Αναζήτηση στο αρχείο για τα ονόματα αυτών που δεν είναι 19 χρονών           *
+	 ********************************************************************************/
+
+	eage = 19;
+	printf("\nRESULT OF QUERY #3\n\n");
+
+	if ((eAentry = AM_OpenIndex(empAge)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndex called on %s \n", empAge);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  'Aνοιγμα της αναζήτησης                                                      *
+	 ********************************************************************************/
+	if ((scan1 = AM_OpenIndexScan(eAentry, NOT_EQUAL, (void *) &eage)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndexScan called on %s \n", empAge);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Σάρωση των σχετικών εγγραφών και εκτύπωση των αντίστοιχων ονομάτων          *
+	 ********************************************************************************/
+	while ((cvalue = (char*) AM_FindNextEntry(scan1)) != NULL) {
+		printf("'%s' \n", cvalue);
+	}
+
+	if (AM_errno != AME_EOF) {
+		sprintf(errStr, "Error in AM_FindNextEntry called on scan %d \n", scan1);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Κλείσιμο της αναζήτησης και του αρχείου ΒΔ                                  *
+	 ********************************************************************************/
+	if (AM_CloseIndexScan(scan1) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndexScan called on scan %d \n",
+				scan1);
+		AM_PrintError(errStr);
+	}
+
+	if (AM_CloseIndex(eAentry) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndex called on %s \n", empAge);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *      Eπερώτηση #4                                                            *
+	 *  Αναζήτηση στο enames για να βρεθεί το αναγνωριστικό της εγγραφής ANEMONH    *
+	 ********************************************************************************/
+
+	strcpy(ename, "ANEMONH THETIS");
+	printf("\nRESULT OF QUERY #4\n\n");
+
+	if ((eNentry = AM_OpenIndex(empName)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndex called on %s \n", empName);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  'Aνοιγμα της αναζήτησης                                                      *
+	 ********************************************************************************/
+	if ((scan1 = AM_OpenIndexScan(eNentry, EQUAL, (void *) ename)) < 0) {
+		sprintf(errStr, "Error in AM_OpenIndexScan called on %s \n", empName);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Eύρεση της εγγραφής ANEMONH.                                                *
+	 ********************************************************************************/
+	if ((ivalue = (int*) AM_FindNextEntry(scan1)) != NULL)
+		printf("%d \n\n", *ivalue);
+	else if (AM_errno != AME_EOF) {
+		sprintf(errStr, "ANEMONH was not found due to an error");
+		AM_PrintError(errStr);
+	} else {
+		sprintf(errStr,
+				"ANEMONH was not found... (Note: This is the correct behaviour!)");
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Κλείσιμο της αναζήτησης και του αρχείου ΑΚ                                  *
+	 ********************************************************************************/
+	if (AM_CloseIndexScan(scan1) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndexScan called on scan %d \n",
+				scan1);
+		AM_PrintError(errStr);
+	}
+
+	if (AM_CloseIndex(eNentry) != AME_OK) {
+		sprintf(errStr, "Error in AM_CloseIndex called on %s \n", empName);
+		AM_PrintError(errStr);
+	}
+
+	/********************************************************************************
+	 *  Τέλος του δοκιμαστικού προγράμματος για εισαγωγές/ αναζητήσεις    *
+	 ********************************************************************************/
+
+	return 0;
+}
